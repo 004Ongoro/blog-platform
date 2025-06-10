@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation"
 import { createPost, updatePost } from "@/lib/actions/post-actions"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+// Import marked for Markdown parsing
+import { marked } from "marked"
 
 // Import ReactQuill with better error handling
 const ReactQuill = dynamic(() => import("react-quill").then((mod) => mod.default), {
@@ -32,6 +34,7 @@ const ReactQuill = dynamic(() => import("react-quill").then((mod) => mod.default
 // Import Quill CSS
 import "react-quill/dist/quill.snow.css"
 
+// Configure Quill modules with enhanced clipboard handling
 const modules = {
   toolbar: [
     [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -40,6 +43,9 @@ const modules = {
     ["link", "image"],
     ["clean"],
   ],
+  clipboard: {
+    matchVisual: false, // Ensure HTML is parsed correctly
+  },
 }
 
 const formats = [
@@ -145,6 +151,21 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
     return () => clearTimeout(timer)
   }, [])
 
+  // Function to detect and convert Markdown to HTML
+  const parseContent = (value: string): string => {
+    // Check if the input looks like Markdown (e.g., contains #, *, or - for lists)
+    const isMarkdown = value.match(/^(#+\s|[-*]\s|\*\*)/)
+    if (isMarkdown) {
+      try {
+        return marked(value) // Convert Markdown to HTML
+      } catch (error) {
+        console.error("Markdown parsing error:", error)
+        return value // Fallback to raw value if parsing fails
+      }
+    }
+    return value // Assume HTML if not Markdown
+  }
+
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {}
 
@@ -191,7 +212,7 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
       const postData = {
         title: title.trim(),
         slug: slug.trim(),
-        content: content.trim(),
+        content: content.trim(), // Store as HTML
         excerpt: excerpt.trim(),
         category,
         coverImage: coverImage.trim(),
@@ -225,11 +246,27 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
   }
 
   const handleContentChange = (value: string) => {
-    setContent(value)
+    setContent(parseContent(value)) // Parse Markdown or keep HTML
     if (errors.content) {
       setErrors((prev) => ({ ...prev, content: "" }))
     }
   }
+
+  // Handle paste event to parse Markdown or HTML
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const clipboardData = e.clipboardData.getData("text/plain")
+      const parsedContent = parseContent(clipboardData)
+      if (quillRef.current) {
+        const quill = quillRef.current.getEditor()
+        const range = quill.getSelection()
+        const position = range ? range.index : quill.getLength()
+        quill.clipboard.dangerouslyPasteHTML(position, parsedContent)
+        e.preventDefault() // Prevent default paste to avoid raw text
+      }
+    },
+    []
+  )
 
   const retryLoadCategories = () => {
     setCategoriesError(null)
@@ -251,8 +288,7 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
               or{" "}
               <a href="/admin/categories/new" className="underline">
                 create a category first
-              </a>
-              .
+              </a>.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -404,7 +440,7 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
                   </AlertDescription>
                 </Alert>
               ) : isQuillLoaded ? (
-                <div className="quill-wrapper">
+                <div className="quill-wrapper" onPaste={handlePaste}>
                   <ReactQuill
                     ref={quillRef}
                     value={content}
