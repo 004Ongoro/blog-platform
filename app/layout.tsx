@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   },
   description: "Personal blog by George Ongoro sharing insights on various topics",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://blog.ongoro.top"),
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
