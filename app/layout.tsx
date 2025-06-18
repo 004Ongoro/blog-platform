@@ -29,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <meta name="google-site-verification" content="4NaPXW9QFL-hOwfApJ7dHnwsjJdfV8sAtC09ecsEvpI" />
+      <meta name="google-adsense-account" content="ca-pub-1908166869645479">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <div className="flex flex-col min-h-screen">
