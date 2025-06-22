@@ -8,6 +8,7 @@ import { trackPageView } from "@/lib/actions/tracking-actions"
 import { getCurrentUser } from "@/lib/actions/auth-actions"
 import { formatDate } from "@/lib/utils/format-date"
 import { Badge } from "@/components/ui/badge"
+import { getPostViews } from "@/lib/actions/analytics-actions"
 import CommentSection from "@/components/comments/comment-section"
 import RelatedPosts from "@/components/posts/related-posts"
 import SocialShareButtons from "@/components/posts/social-share-buttons"
@@ -96,7 +97,7 @@ export default async function PostPage({ params }: PostPageProps) {
             <span className="text-sm text-muted-foreground">{formatDate(post.publishedAt)}</span>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Eye className="h-4 w-4" />
-              <span>Post view tracked</span>
+              <span>{postViews} views</span>
             </div>
           </div>
 
