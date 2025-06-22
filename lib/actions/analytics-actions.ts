@@ -56,6 +56,23 @@ export async function getVisitStats(days = 30) {
   }
 }
 
+// =================================================
+
+export async function getPostViews(postPath: string) {
+  try {
+    await connectDB()
+
+    const views = await PageView.countDocuments({
+      path: postPath,
+    })
+
+    return views
+  } catch (error) {
+    console.error("Error getting post views:", error)
+    return 0
+  }
+}
+
 // Get daily visits for the past N days
 export async function getDailyVisits(days = 30) {
   try {
