@@ -82,6 +82,8 @@ export default async function PostPage({ params }: PostPageProps) {
   const currentPath = `/${params.category}/${params.slug}`
   const shareUrl = `/${params.category}/${params.slug}`
 
+  const postViews = await getPostViews(currentPath)
+
   return (
     <>
       <Suspense fallback={null}>
