@@ -99,7 +99,7 @@ export default async function PostPage({ params }: PostPageProps) {
             <span className="text-sm text-muted-foreground">{formatDate(post.publishedAt)}</span>
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Eye className="h-4 w-4" />
-              <span>{postViews} views</span>
+              <span>Page view tracked</span>
             </div>
           </div>
 
