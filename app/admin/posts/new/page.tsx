@@ -60,7 +60,7 @@ async function PostEditor() {
       )
     }
 
-    return <RichTextEditor categories={categories} />
+    return <PostEditorC categories={categories} />
   } catch (error) {
     console.error("Error loading categories:", error)
     return (
