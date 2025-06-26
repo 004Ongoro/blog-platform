@@ -2,7 +2,7 @@
 
 import { Suspense } from "react"
 import { getCategories } from "@/lib/actions/category-actions"
-import RichTextEditor from "@/components/editor/rich-text-editor"
+import PostEditorC from "@/components/editor/rich-text-editor"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
