@@ -88,7 +88,7 @@ type PostFormProps = {
   categories?: Category[]
 }
 
-export default function PostEditor({ post, categories: initialCategories }: PostFormProps) {
+export default function PostEditorC({ post, categories: initialCategories }: PostFormProps) {
   const [title, setTitle] = useState(post?.title || "")
   const [slug, setSlug] = useState(post?.slug || "")
   const [content, setContent] = useState(post?.content || "") // Holds Markdown or HTML based on editor mode
