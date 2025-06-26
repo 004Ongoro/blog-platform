@@ -15,24 +15,30 @@ import { useRouter } from "next/navigation"
 import { createPost, updatePost } from "@/lib/actions/post-actions"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-// Import marked for Markdown parsing
-import { marked } from "marked"
+import { marked } from "marked" // Already installed
 
 // Import ReactQuill with better error handling
-const ReactQuill = dynamic(() => import("react-quill").then((mod) => mod.default), {
-  ssr: false,
-  loading: () => (
-    <div className="h-64 bg-muted animate-pulse rounded-md flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Loading editor...</p>
+const ReactQuill = dynamic(
+  () => {
+    // Ensure 'react-quill' and its styles are loaded client-side only
+    if (typeof window !== "undefined") {
+      require("react-quill/dist/quill.snow.css")
+      return import("react-quill").then((mod) => mod.default)
+    }
+    return Promise.resolve(null) // Return a promise that resolves to null on server-side
+  },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 bg-muted animate-pulse rounded-md flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">Loading rich text editor...</p>
+        </div>
       </div>
-    </div>
-  ),
-})
-
-// Import Quill CSS
-import "react-quill/dist/quill.snow.css"
+    ),
+  }
+)
 
 // Configure Quill modules with enhanced clipboard handling
 const modules = {
@@ -82,17 +88,16 @@ type PostFormProps = {
   categories?: Category[]
 }
 
-export default function RichTextEditor({ post, categories: initialCategories }: PostFormProps) {
+export default function PostEditor({ post, categories: initialCategories }: PostFormProps) {
   const [title, setTitle] = useState(post?.title || "")
   const [slug, setSlug] = useState(post?.slug || "")
-  const [content, setContent] = useState(post?.content || "")
+  const [content, setContent] = useState(post?.content || "") // Holds Markdown or HTML based on editor mode
   const [excerpt, setExcerpt] = useState(post?.excerpt || "")
   const [category, setCategory] = useState(post?.category || "")
   const [coverImage, setCoverImage] = useState(post?.coverImage || "")
   const [published, setPublished] = useState(post?.published || false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isQuillLoaded, setIsQuillLoaded] = useState(false)
-  const [quillError, setQuillError] = useState<string | null>(null)
+  const [editorMode, setEditorMode] = useState<"rich-text" | "markdown">("rich-text") // New state for editor mode
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [categories, setCategories] = useState<Category[]>(initialCategories || [])
   const [categoriesLoading, setCategoriesLoading] = useState(!initialCategories)
@@ -101,6 +106,25 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
   const quillRef = useRef<any>(null)
   const { toast } = useToast()
   const router = useRouter()
+
+  // Initialize content based on whether it's an existing post and assumed format
+  // For simplicity, if post content exists, we'll assume it's HTML and start in rich-text mode.
+  // If it's a new post, or content is clearly markdown, markdown mode might be a better default.
+  useEffect(() => {
+    if (post?.content) {
+      // A very basic check to see if content looks like HTML or Markdown
+      // If it contains common HTML tags, assume rich-text. Otherwise, default to markdown.
+      const looksLikeHtml = /<[a-z][\s\S]*>/i.test(post.content)
+      setEditorMode(looksLikeHtml ? "rich-text" : "markdown")
+      // If loading an existing post, and it's determined to be markdown, set the content directly
+      // If it's HTML, the rich text editor will handle it.
+      if (!looksLikeHtml) {
+        setContent(post.content) // Keep as Markdown for Markdown editor
+      } else {
+        setContent(post.content) // Keep as HTML for Rich Text Editor
+      }
+    }
+  }, [post])
 
   // Fetch categories if not provided
   useEffect(() => {
@@ -142,36 +166,66 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
     }
   }, [title, post])
 
-  // Handle Quill loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsQuillLoaded(true)
-    }, 1000)
-
-    return () => clearTimeout(timer)
+  // Convert HTML to Markdown (basic conversion for switching)
+  const convertHtmlToMarkdown = useCallback((html: string): string => {
+    // This is a very basic conversion and might not be perfect for complex HTML.
+    // For a robust solution, consider a library like 'turndown'.
+    // Here, we'll just strip HTML tags and replace common entities.
+    let markdown = html
+      .replace(/<br\s*\/?>/gi, "\n") // Newlines
+      .replace(/<p>/gi, "")
+      .replace(/<\/p>/gi, "\n\n") // Paragraphs
+      .replace(/<strong>(.*?)<\/strong>/gi, "**$1**") // Bold
+      .replace(/<em>(.*?)<\/em>/gi, "*$1*") // Italic
+      .replace(/<ul>/gi, "")
+      .replace(/<\/ul>/gi, "")
+      .replace(/<li>/gi, "- ")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<[^>]*>/g, "") // Strip any remaining HTML tags
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim()
+    return markdown
   }, [])
 
-  // Function to detect and convert Markdown to HTML
-  const parseContent = (value: string): string => {
-    // Check if the input looks like Markdown (e.g., contains #, *, or - for lists)
-    const isMarkdown = value.match(/^(#+\s|[-*]\s|\*\*)/)
-    if (isMarkdown) {
-      try {
-        return marked(value) // Convert Markdown to HTML
-      } catch (error) {
-        console.error("Markdown parsing error:", error)
-        return value // Fallback to raw value if parsing fails
+  // Handle content change based on editor mode
+  const handleContentChange = useCallback(
+    (value: string) => {
+      // If rich text editor is active, content is HTML.
+      // If markdown editor is active, content is Markdown.
+      setContent(value)
+      if (errors.content) {
+        setErrors((prev) => ({ ...prev, content: "" }))
       }
+    },
+    [errors.content]
+  )
+
+  // Toggle editor mode
+  const toggleEditorMode = useCallback(() => {
+    if (editorMode === "rich-text") {
+      // Switching to Markdown: convert current HTML content to Markdown
+      setContent(convertHtmlToMarkdown(content))
+      setEditorMode("markdown")
+    } else {
+      // Switching to Rich Text: convert current Markdown content to HTML
+      setContent(marked.parse(content) as string)
+      setEditorMode("rich-text")
     }
-    return value // Assume HTML if not Markdown
-  }
+  }, [editorMode, content, convertHtmlToMarkdown])
 
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {}
 
     if (!title.trim()) newErrors.title = "Title is required"
     if (!slug.trim()) newErrors.slug = "Slug is required"
-    if (!content.trim() || content === "<p><br></p>") newErrors.content = "Content is required"
+    // Content validation: If in markdown mode, check content directly. If in rich text, check after parsing.
+    const currentContent = editorMode === "markdown" ? content.trim() : marked.parse(content).trim()
+    if (!currentContent || currentContent === "<p><br></p>")
+      newErrors.content = "Content is required"
     if (!excerpt.trim()) newErrors.excerpt = "Excerpt is required"
     if (!category) newErrors.category = "Category is required"
     if (!coverImage.trim()) newErrors.coverImage = "Cover image URL is required"
@@ -183,7 +237,7 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [title, slug, content, excerpt, category, coverImage])
+  }, [title, slug, content, excerpt, category, coverImage, editorMode])
 
   const isValidUrl = (string: string) => {
     try {
@@ -209,10 +263,13 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
     setIsSubmitting(true)
 
     try {
+      // When saving, ensure content is always stored as HTML
+      const finalContentToSave = editorMode === "markdown" ? (marked.parse(content) as string) : content
+
       const postData = {
         title: title.trim(),
         slug: slug.trim(),
-        content: content.trim(), // Store as HTML
+        content: finalContentToSave, // Always store as HTML
         excerpt: excerpt.trim(),
         category,
         coverImage: coverImage.trim(),
@@ -245,29 +302,6 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
     }
   }
 
-  const handleContentChange = (value: string) => {
-    setContent(parseContent(value)) // Parse Markdown or keep HTML
-    if (errors.content) {
-      setErrors((prev) => ({ ...prev, content: "" }))
-    }
-  }
-
-  // Handle paste event to parse Markdown or HTML
-  const handlePaste = useCallback(
-    (e: React.ClipboardEvent) => {
-      const clipboardData = e.clipboardData.getData("text/plain")
-      const parsedContent = parseContent(clipboardData)
-      if (quillRef.current) {
-        const quill = quillRef.current.getEditor()
-        const range = quill.getSelection()
-        const position = range ? range.index : quill.getLength()
-        quill.clipboard.dangerouslyPasteHTML(position, parsedContent)
-        e.preventDefault() // Prevent default paste to avoid raw text
-      }
-    },
-    []
-  )
-
   const retryLoadCategories = () => {
     setCategoriesError(null)
     setCategoriesLoading(true)
@@ -288,7 +322,8 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
               or{" "}
               <a href="/admin/categories/new" className="underline">
                 create a category first
-              </a>.
+              </a>
+              .
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -430,49 +465,33 @@ export default function RichTextEditor({ post, categories: initialCategories }: 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="content">Content *</Label>
+            <div className="flex justify-between items-center mb-2">
+              <Label htmlFor="content">Content *</Label>
+              <Button type="button" onClick={toggleEditorMode} variant="outline" size="sm">
+                Switch to {editorMode === "rich-text" ? "Markdown" : "Rich Text"}
+              </Button>
+            </div>
             <div className="min-h-[300px]">
-              {quillError ? (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Failed to load the rich text editor. You can still create content using the basic text area below.
-                  </AlertDescription>
-                </Alert>
-              ) : isQuillLoaded ? (
-                <div className="quill-wrapper" onPaste={handlePaste}>
-                  <ReactQuill
-                    ref={quillRef}
-                    value={content}
-                    onChange={handleContentChange}
-                    modules={modules}
-                    formats={formats}
-                    placeholder="Write your post content here..."
-                    theme="snow"
-                    className={`${errors.content ? "border-red-500" : ""}`}
-                    onError={(error) => {
-                      console.error("Quill error:", error)
-                      setQuillError("Failed to load editor")
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="h-64 bg-muted animate-pulse rounded-md flex items-center justify-center">
-                  <div className="text-center">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Loading rich text editor...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Fallback textarea */}
-              {quillError && (
-                <Textarea
-                  value={content}
-                  onChange={(e) => handleContentChange(e.target.value)}
+              {editorMode === "rich-text" ? (
+                // Rich Text Editor (ReactQuill)
+                <ReactQuill
+                  ref={quillRef}
+                  value={content} // Quill expects HTML
+                  onChange={handleContentChange}
+                  modules={modules}
+                  formats={formats}
                   placeholder="Write your post content here..."
-                  className="mt-4"
-                  rows={10}
+                  theme="snow"
+                  className={`${errors.content ? "border-red-500" : ""}`}
+                />
+              ) : (
+                // Markdown Editor (Textarea)
+                <Textarea
+                  value={content} // Textarea expects raw string (Markdown)
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  placeholder="Write your post content here using Markdown..."
+                  className={`min-h-[300px] ${errors.content ? "border-red-500" : ""}`}
+                  rows={15}
                 />
               )}
             </div>
