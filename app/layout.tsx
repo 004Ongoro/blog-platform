@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toaster"
 import CookieConsentModal from "@/components/cookie-consent/cookie-consent-modal"
 import VercelAnalytics from "@/components/analytics/vercel-analytics"
 import { Suspense } from "react"
+import Script from "next/script" 
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,17 +30,23 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-         <link rel="icon" type="image/x-icon" href="/favicon.png">
+        <link rel="icon" type="image/x-icon" href="/favicon.png" />
+        <meta name="google-adsense-account" content="ca-pub-1908166869645479" />
       </head>
-      <meta name="google-adsense-account" content="ca-pub-1908166869645479" />
-      <script src="https://cmp.gatekeeperconsent.com/min.js" data-cfasync="false"></script>
-<script src="https://the.gatekeeperconsent.com/cmp.min.js" data-cfasync="false"></script>
-      <script async src="//www.ezojs.com/ezoic/sa.min.js"></script>
-<script>
-    window.ezstandalone = window.ezstandalone || {};
-    ezstandalone.cmd = ezstandalone.cmd || [];
-</script>
       <body className={inter.className}>
+        {/* Gatekeeper Consent Scripts using next/script for better control */}
+        <Script src="https://cmp.gatekeeperconsent.com/min.js" data-cfasync="false" strategy="beforeInteractive" />
+        <Script src="https://the.gatekeeperconsent.com/cmp.min.js" data-cfasync="false" strategy="beforeInteractive" />
+
+        {/* Ezoic Scripts using next/script */}
+        <Script src="//www.ezojs.com/ezoic/sa.min.js" strategy="beforeInteractive" />
+        <Script id="ezoic-cmd-init" strategy="beforeInteractive">
+          {`
+            window.ezstandalone = window.ezstandalone || {};
+            ezstandalone.cmd = ezstandalone.cmd || [];
+          `}
+        </Script>
+
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <div className="flex flex-col min-h-screen">
             <Header />
