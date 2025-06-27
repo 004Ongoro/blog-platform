@@ -106,17 +106,7 @@ export default async function PostPage({ params }: PostPageProps) {
           <h1 className="text-4xl md:text-5xl font-bold mb-6">{post.title}</h1>
 
           <p className="text-xl text-muted-foreground mb-8">{post.excerpt}</p>
-          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1908166869645479"
-     crossorigin="anonymous"></script>
-<ins class="adsbygoogle"
-     style="display:block; text-align:center;"
-     data-ad-layout="in-article"
-     data-ad-format="fluid"
-     data-ad-client="ca-pub-1908166869645479"
-     data-ad-slot="8333454387"></ins>
-<script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
-</script>
+       
 
           {/* Social Share and Vote Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
