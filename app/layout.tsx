@@ -28,6 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+         <link rel="icon" type="image/x-icon" href="/favicon.png">
+      </head>
       <meta name="google-adsense-account" content="ca-pub-1908166869645479" />
       <script src="https://cmp.gatekeeperconsent.com/min.js" data-cfasync="false"></script>
 <script src="https://the.gatekeeperconsent.com/cmp.min.js" data-cfasync="false"></script>
