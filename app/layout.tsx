@@ -32,6 +32,8 @@ export default function RootLayout({
       <head>
         <link rel="icon" type="image/x-icon" href="/favicon.png" />
         <meta name="google-adsense-account" content="ca-pub-1908166869645479" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1908166869645479"
+     crossorigin="anonymous"></script>
       </head>
       <body className={inter.className}>
         {/* Gatekeeper Consent Scripts using next/script for better control */}
