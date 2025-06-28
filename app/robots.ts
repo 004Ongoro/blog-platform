@@ -6,7 +6,8 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       disallow: ["/admin/", "/api/"],
+      
     },
-    sitemap: "https://georgeongoro.com/sitemap.xml",
+    sitemap: "https://blog.ongoro.top/sitemap.xml",
   }
 }
