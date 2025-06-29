@@ -185,7 +185,7 @@ export async function getTrafficSources(days = 30) {
 }
 
 // Get most popular posts
-export async function getPopularPosts(limit = 10) {
+export async function getPopularPosts(limit = 50) {
   try {
     await connectDB()
 
