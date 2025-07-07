@@ -11,7 +11,6 @@ export default function ConfirmSubscriptionPage() {
   const [message, setMessage] = useState("Your subscription has been confirmed!")
   const searchParams = useSearchParams()
 
-  // This page is now just a success page since we've simplified the subscription process
   return (
     <div className="container mx-auto px-4 py-16 flex justify-center">
       <Card className="w-full max-w-md">
