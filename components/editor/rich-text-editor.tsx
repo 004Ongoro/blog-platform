@@ -15,17 +15,17 @@ import { useRouter } from "next/navigation"
 import { createPost, updatePost } from "@/lib/actions/post-actions"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { marked } from "marked" // Already installed
+import { marked } from "marked" 
 
-// Import ReactQuill with better error handling
+
 const ReactQuill = dynamic(
   () => {
-    // Ensure 'react-quill' and its styles are loaded client-side only
+    
     if (typeof window !== "undefined") {
       require("react-quill/dist/quill.snow.css")
       return import("react-quill").then((mod) => mod.default)
     }
-    return Promise.resolve(null) // Return a promise that resolves to null on server-side
+    return Promise.resolve(null)
   },
   {
     ssr: false,
@@ -40,7 +40,7 @@ const ReactQuill = dynamic(
   }
 )
 
-// Configure Quill modules with enhanced clipboard handling
+
 const modules = {
   toolbar: [
     [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -107,19 +107,15 @@ export default function PostEditorC({ post, categories: initialCategories }: Pos
   const { toast } = useToast()
   const router = useRouter()
 
-  // Initialize content based on whether it's an existing post and assumed format
-  // For simplicity, if post content exists, we'll assume it's HTML and start in rich-text mode.
-  // If it's a new post, or content is clearly markdown, markdown mode might be a better default.
+  
   useEffect(() => {
     if (post?.content) {
-      // A very basic check to see if content looks like HTML or Markdown
-      // If it contains common HTML tags, assume rich-text. Otherwise, default to markdown.
+      
       const looksLikeHtml = /<[a-z][\s\S]*>/i.test(post.content)
       setEditorMode(looksLikeHtml ? "rich-text" : "markdown")
-      // If loading an existing post, and it's determined to be markdown, set the content directly
-      // If it's HTML, the rich text editor will handle it.
+      
       if (!looksLikeHtml) {
-        setContent(post.content) // Keep as Markdown for Markdown editor
+        setContent(post.content) 
       } else {
         setContent(post.content) // Keep as HTML for Rich Text Editor
       }
@@ -168,9 +164,7 @@ export default function PostEditorC({ post, categories: initialCategories }: Pos
 
   // Convert HTML to Markdown (basic conversion for switching)
   const convertHtmlToMarkdown = useCallback((html: string): string => {
-    // This is a very basic conversion and might not be perfect for complex HTML.
-    // For a robust solution, consider a library like 'turndown'.
-    // Here, we'll just strip HTML tags and replace common entities.
+
     let markdown = html
       .replace(/<br\s*\/?>/gi, "\n") // Newlines
       .replace(/<p>/gi, "")
